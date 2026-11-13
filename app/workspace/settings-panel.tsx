@@ -1297,15 +1297,34 @@ export default function SettingsPanel({
                           className="flex min-h-14 items-center justify-between gap-3 border-b border-black/[0.07] px-3 last:border-b-0 dark:border-white/10"
                           key={factor.id}
                         >
-                          <div>
-                            <p className="text-sm font-medium">
-                              {factor.friendly_name || "Authenticator app"}
-                            </p>
-                            <p className={subtleClass}>
-                              {factor.status === "verified"
-                                ? "Enabled"
-                                : "Setup incomplete — remove it to start again"}
-                            </p>
+                          <div className="flex items-center gap-3">
+                            <span className="bg-black/10 rounded-md p-1.5 text-black/60 dark:bg-white/10 dark:text-white/60">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                strokeWidth="1.5"
+                                stroke="currentColor"
+                                className="size-5"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3"
+                                />
+                              </svg>
+                            </span>
+
+                            <div>
+                              <p className="text-sm font-medium">
+                                {factor.friendly_name || "Authenticator app"}
+                              </p>
+                              <p className={subtleClass}>
+                                {factor.status === "verified"
+                                  ? "Enabled"
+                                  : "Setup incomplete — remove it to start again"}
+                              </p>
+                            </div>
                           </div>
                           <button
                             className="rounded-lg border border-black/10 px-2.5 py-1.5 text-sm font-medium hover:bg-black/5 disabled:cursor-wait disabled:opacity-50 dark:border-white/10 dark:hover:bg-white/10"
