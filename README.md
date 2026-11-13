@@ -20,6 +20,25 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Supabase setup
+
+The account avatar and automatic workspace setup require
+Supabase resources. The migrations in `supabase/migrations/` create the public
+Storage bucket named `avatars`, the `public.profiles` table, and the
+`public.workspaces` table with per-user row-level security policies.
+
+To create them in your Supabase project, run both migration files in timestamp
+order in the Supabase Dashboard SQL Editor. If this repository is linked to
+your project with the Supabase CLI, apply them with `supabase db push`.
+
+If the app reports `PGRST205` for `public.workspaces`, verify the migrations
+were applied to the project configured by `NEXT_PUBLIC_SUPABASE_URL`. Then run
+this in that project's SQL Editor to refresh PostgREST's schema cache:
+
+```sql
+NOTIFY pgrst, 'reload schema';
+```
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
