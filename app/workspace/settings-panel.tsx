@@ -372,7 +372,7 @@ export default function SettingsPanel({
       const { data, error } = await supabase.auth.mfa.enroll({
         factorType: "totp",
         friendlyName: "Authenticator app",
-        issuer: "Synthetic",
+        issuer: "Arcture",
       });
 
       if (error) throw error;
@@ -591,7 +591,7 @@ export default function SettingsPanel({
     const url = URL.createObjectURL(file);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "synthetic-profile.json";
+    link.download = "arcture-profile.json";
     link.click();
     window.setTimeout(() => URL.revokeObjectURL(url), 0);
   }
@@ -1237,7 +1237,7 @@ export default function SettingsPanel({
                               type="button"
                               className="flex text-left min-w-0 flex-1 items-center gap-2"
                             >
-                              <span className="bg-black/10 rounded-md p-1.5">
+                              <span className="bg-black/[0.04] rounded-md p-1.5">
                                 <PasskeyIcon
                                   aria-hidden="true"
                                   className="shrink-0 text-black/60 dark:text-white/60"
@@ -1298,7 +1298,7 @@ export default function SettingsPanel({
                           key={factor.id}
                         >
                           <div className="flex items-center gap-3">
-                            <span className="bg-black/10 rounded-md p-1.5 text-black/60 dark:bg-white/10 dark:text-white/60">
+                            <span className="bg-black/[0.04] rounded-md p-1.5 text-black/60 dark:bg-white/10 dark:text-white/60">
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 fill="none"
@@ -1410,7 +1410,7 @@ export default function SettingsPanel({
                 <div className="mt-2 flex min-h-14 items-center justify-between gap-4 rounded-xl border border-black/10 bg-white px-3 dark:border-white/10 dark:bg-white/[0.03]">
                   <div>
                     <p className="text-sm font-medium">
-                      Invite your friends to Synthetic
+                      Invite your friends to Arcture
                     </p>
                     <p className={subtleClass}>
                       You both get 50 credits after signup

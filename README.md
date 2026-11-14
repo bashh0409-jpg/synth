@@ -39,6 +39,25 @@ this in that project's SQL Editor to refresh PostgREST's schema cache:
 NOTIFY pgrst, 'reload schema';
 ```
 
+## Electron desktop build
+
+The website can still be run and deployed with `npm run dev`, `npm run build`,
+and `npm run start`. To launch it in an Electron window during development, run
+`npm run electron:dev`.
+
+To create an unpacked desktop app for local testing, run
+`npm run electron:package`. To create a macOS drag-to-Applications installer,
+run `npm run electron:dmg`; this creates an unsigned local test DMG. For a
+signed production installer, configure Apple code signing and run
+`npm run electron:dist`. The DMG opens
+`https://synthplum.vercel.app/`; during development Electron opens the local
+Next.js server instead. Set `ELECTRON_PRODUCTION_URL` to override the packaged
+app's site URL. Build output is written to `release/`. Build the installer on
+the target operating system.
+
+The Electron app loads the deployed website, so website deployment remains
+independent and `.env.local` is not included in the desktop package.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

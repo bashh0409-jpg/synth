@@ -30,6 +30,8 @@ import {
   Earth,
   Settings,
   type LucideIcon,
+  Podcast,
+  Mic,
 } from "lucide-react";
 import ProfileAvatar from "./profile-avatar";
 import AccountFlyout from "./account-flyout";
@@ -89,6 +91,14 @@ type SearchableTab =
       destination: "subagents";
     };
 
+type WorkspaceLocation = {
+  isSettingsOpen: boolean;
+  settingsSection: string;
+  mode: "agents" | "manual";
+  chatId: number | null;
+  isSplitView: boolean;
+};
+
 const searchableTabs: SearchableTab[] = [
   {
     title: "Account",
@@ -135,6 +145,13 @@ const searchableTabs: SearchableTab[] = [
 
 export default function Home() {
   const router = useRouter();
+  const initialLocation: WorkspaceLocation = {
+    isSettingsOpen: false,
+    settingsSection: "Account",
+    mode: "agents",
+    chatId: null,
+    isSplitView: false,
+  };
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
@@ -161,6 +178,10 @@ export default function Home() {
     "loading" | "ready" | "error"
   >("loading");
   const [workspaceError, setWorkspaceError] = useState("");
+  const [navigationIndex, setNavigationIndex] = useState(0);
+  const navigationHistoryRef = useRef<WorkspaceLocation[]>([initialLocation]);
+  const navigationIndexRef = useRef(0);
+  const currentLocationRef = useRef(initialLocation);
   const splitAreaRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLElement>(null);
   const workspaceShortcutHandlerRef = useRef<(event: KeyboardEvent) => void>(
@@ -199,6 +220,19 @@ export default function Home() {
     normalizedSearchQuery.length === 0
       ? matchingOpenTabs.slice(0, 3)
       : matchingOpenTabs;
+  const activeChat = chats.find((chat) => chat.id === activeChatId);
+  const activeSettingsTab = searchableTabs.find(
+    (tab) =>
+      tab.destination === "settings" && tab.section === activeSettingsSection,
+  );
+  const currentHeaderTitle = isSettingsOpen
+    ? (activeSettingsTab?.breadcrumb ??
+      `Settings > ${activeSettingsSection}`)
+    : activeChat?.title ??
+      (isSplitView ? "Subagents" : mode === "agents" ? "Agents" : "Manual");
+  const canNavigateBack = navigationIndex > 0;
+  const canNavigateForward =
+    navigationIndex < navigationHistoryRef.current.length - 1;
 
   useEffect(() => {
     function handleWorkspaceShortcut(event: KeyboardEvent) {
@@ -270,32 +304,109 @@ export default function Home() {
     ]);
   }
 
+  function applyLocation(location: WorkspaceLocation) {
+    currentLocationRef.current = location;
+    setIsSettingsOpen(location.isSettingsOpen);
+    setActiveSettingsSection(location.settingsSection);
+    setMode(location.mode);
+    setActiveChatId(location.chatId);
+    setIsSplitView(location.isSplitView);
+  }
+
+  function navigateTo(location: WorkspaceLocation) {
+    const currentIndex = navigationIndexRef.current;
+    const history = navigationHistoryRef.current;
+    const currentLocation = history[currentIndex];
+    if (
+      currentLocation &&
+      currentLocation.isSettingsOpen === location.isSettingsOpen &&
+      currentLocation.settingsSection === location.settingsSection &&
+      currentLocation.mode === location.mode &&
+      currentLocation.chatId === location.chatId &&
+      currentLocation.isSplitView === location.isSplitView
+    ) {
+      return;
+    }
+
+    const nextHistory = [...history.slice(0, currentIndex + 1), location];
+    const nextIndex = nextHistory.length - 1;
+    navigationHistoryRef.current = nextHistory;
+    navigationIndexRef.current = nextIndex;
+    setNavigationIndex(nextIndex);
+    applyLocation(location);
+  }
+
+  function navigateHistory(direction: -1 | 1) {
+    const nextIndex = navigationIndexRef.current + direction;
+    const location = navigationHistoryRef.current[nextIndex];
+    if (!location) return;
+
+    navigationIndexRef.current = nextIndex;
+    setNavigationIndex(nextIndex);
+    applyLocation(location);
+  }
+
   function selectSettingsSection(section: string) {
-    setActiveSettingsSection(section);
     const tab = searchableTabs.find(
       (item) =>
         item.destination === "settings" && item.section === section,
     );
     if (!tab) throw new Error(`Unknown settings section: ${section}`);
     markTabUsed(tab.breadcrumb);
+    navigateTo({
+      ...currentLocationRef.current,
+      isSettingsOpen: true,
+      settingsSection: section,
+    });
   }
 
   function selectMode(nextMode: "agents" | "manual") {
-    setMode(nextMode);
     const title = nextMode === "agents" ? "Agents" : "Manual";
     markTabUsed(`Workspace > ${title}`);
+    navigateTo({
+      ...currentLocationRef.current,
+      isSettingsOpen: false,
+      mode: nextMode,
+    });
   }
 
   function openSubagentsTab() {
-    setIsSettingsOpen(false);
-    setIsSplitView(true);
     setIsSidePaneExpanded(false);
+    navigateTo({
+      ...currentLocationRef.current,
+      isSettingsOpen: false,
+      isSplitView: true,
+    });
     markTabUsed("Workspace > Subagents");
   }
 
   function openSettings() {
-    setIsSettingsOpen(true);
-    selectSettingsSection(activeSettingsSection);
+    const section = currentLocationRef.current.settingsSection;
+    const tab = searchableTabs.find(
+      (item) => item.destination === "settings" && item.section === section,
+    );
+    if (!tab) throw new Error(`Unknown settings section: ${section}`);
+    markTabUsed(tab.breadcrumb);
+    navigateTo({
+      ...currentLocationRef.current,
+      isSettingsOpen: true,
+    });
+  }
+
+  function closeSettings() {
+    navigateTo({
+      ...currentLocationRef.current,
+      isSettingsOpen: false,
+    });
+  }
+
+  function selectChat(chatId: number) {
+    navigateTo({
+      ...currentLocationRef.current,
+      isSettingsOpen: false,
+      chatId,
+    });
+    markChatOpened(chatId);
   }
 
   useEffect(() => {
@@ -375,7 +486,11 @@ export default function Home() {
       title: number === 1 ? "New chat" : `New chat ${number}`,
     };
     setChats((currentChats) => [...currentChats, chat]);
-    setActiveChatId(chat.id);
+    navigateTo({
+      ...currentLocationRef.current,
+      isSettingsOpen: false,
+      chatId: chat.id,
+    });
     markChatOpened(chat.id);
   }
 
@@ -437,7 +552,10 @@ export default function Home() {
 
   function toggleSplitView() {
     if (!isSplitView) markTabUsed("Workspace > Subagents");
-    setIsSplitView((isSplit) => !isSplit);
+    navigateTo({
+      ...currentLocationRef.current,
+      isSplitView: !isSplitView,
+    });
     setIsSidePaneExpanded(false);
     setMainPaneSize(DEFAULT_SIZE);
   }
@@ -480,12 +598,10 @@ export default function Home() {
           break;
         case "Digit1":
           event.preventDefault();
-          setIsSettingsOpen(false);
           selectMode("agents");
           break;
         case "Digit2":
           event.preventDefault();
-          setIsSettingsOpen(false);
           selectMode("manual");
           break;
         case "Digit3":
@@ -576,7 +692,6 @@ export default function Home() {
         ariaLabel: "Option + Command + 1",
       },
       run: () => {
-        setIsSettingsOpen(false);
         selectMode("agents");
         closeCommand();
       },
@@ -590,7 +705,6 @@ export default function Home() {
         ariaLabel: "Option + Command + 2",
       },
       run: () => {
-        setIsSettingsOpen(false);
         selectMode("manual");
         closeCommand();
       },
@@ -658,7 +772,9 @@ export default function Home() {
           isSidebarOpen
             ? "relative flex flex-col p-2"
             : `absolute inset-y-0 left-0 z-40 flex flex-col bg-zinc-100 p-2 dark:bg-zinc-950 ${
-                isSidebarHovered ? "shadow-xl" : "pointer-events-none"
+                isSidebarHovered
+                  ? "border-r border-black/10 shadow-xl dark:border-white/10"
+                  : "pointer-events-none"
               }`
         }`}
       >
@@ -691,7 +807,10 @@ export default function Home() {
             </button>
             <button className="hover:bg-black/10 cursor-pointer duration-200 flex items-center justify-center aspect-square w-7 rounded-md text-black/40">
               <AtSign size={16} />
-            </button>
+            </button>{" "}
+            <button className="hover:bg-black/10 cursor-pointer duration-200 flex items-center justify-center aspect-square w-7 rounded-md text-black/40">
+              <Mic size={16} />
+            </button>{" "}
             <button
               aria-label={isSidebarOpen ? "Collapse sidebar" : "Show sidebar"}
               className="hover:bg-black/10 cursor-pointer duration-200 flex items-center justify-center aspect-square w-7 rounded-md text-black/40"
@@ -708,16 +827,11 @@ export default function Home() {
           activeChatId={activeChatId}
           chats={chats}
           onCreateChat={createChat}
-          onSelectChat={(chatId) => {
-            setActiveChatId(chatId);
-            markChatOpened(chatId);
-          }}
+          onSelectChat={selectChat}
         />
 
         <div className="flex w-full justify-between mt-auto">
-          <AccountFlyout
-            onOpenSettings={openSettings}
-          />
+          <AccountFlyout onOpenSettings={openSettings} />
           <div className="flex items-center h-8 gap-2">
             <button
               aria-label="Open command palette"
@@ -798,10 +912,22 @@ export default function Home() {
                 <PanelRightDashed size={16} />
               </button>
             )}
-            <button className={iconBtn}>
+            <button
+              aria-label="Go back"
+              className={`${iconBtn} disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent`}
+              disabled={!canNavigateBack}
+              onClick={() => navigateHistory(-1)}
+              type="button"
+            >
               <ChevronLeft size={20} />
             </button>
-            <button className={iconBtn}>
+            <button
+              aria-label="Go forward"
+              className={`${iconBtn} disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent`}
+              disabled={!canNavigateForward}
+              onClick={() => navigateHistory(1)}
+              type="button"
+            >
               <ChevronRight size={20} />
             </button>
 
@@ -824,12 +950,30 @@ export default function Home() {
                 <path d="M6.91 2.7392C9.80078 0.969243 13.9717 1.35552 17.1473 3.77631C22.8618 7.73425 23.2306 15.5477 21.8416 19.0664C20.1895 23.2492 4.78934 23.4776 2.53793 19.5771C0.541324 16.1178 1.5082 11.7396 4.26645 9.37495C3.69241 6.96567 4.60658 4.0691 6.91 2.7392ZM11.7225 7.58002C10.9173 7.58002 10.2645 8.23284 10.2645 9.03803V11.7763C10.2645 12.5815 10.9173 13.2343 11.7225 13.2343H11.867C12.6722 13.2343 13.325 12.5815 13.325 11.7763V9.03803C13.325 8.23284 12.6722 7.58002 11.867 7.58002H11.7225ZM16.9959 7.67866C16.2455 7.67869 15.6375 8.2876 15.6375 9.03803V11.7831C15.6375 12.5336 16.2455 13.1425 16.9959 13.1425C17.7464 13.1425 18.3543 12.5336 18.3543 11.7831V9.03803C18.3543 8.28758 17.7464 7.67866 16.9959 7.67866Z" />
               </svg>
               <span className="w-[2px] h-5 bg-black/10" />
-              <p className="muted font-medium text-sm  tracking-tight">
-                Active chat placehoder text
+              <p className="muted flex items-center gap-1 whitespace-nowrap font-medium text-sm tracking-tight">
+                {isSettingsOpen
+                  ? currentHeaderTitle.split(" > ").map((segment, index) => (
+                      <span
+                        className="inline-flex items-center gap-1"
+                        key={`${segment}-${index}`}
+                      >
+                        {index > 0 && (
+                          <ChevronRight
+                            aria-hidden="true"
+                            className="stroke-3"
+                            size={14}
+                          />
+                        )}
+                        {segment}
+                      </span>
+                    ))
+                  : currentHeaderTitle}
               </p>{" "}
-              <button className={iconBtn}>
-                <Ellipsis size={18} />
-              </button>
+              {(!isSettingsOpen || activeChat) && (
+                <button className={iconBtn}>
+                  <Ellipsis size={18} />
+                </button>
+              )}
             </div>
           </div>
 
@@ -861,7 +1005,7 @@ export default function Home() {
             <SettingsPanel
               activeSection={activeSettingsSection}
               onActiveSectionChange={selectSettingsSection}
-              onClose={() => setIsSettingsOpen(false)}
+              onClose={closeSettings}
             />
           ) : (
             <>
@@ -1102,8 +1246,8 @@ export default function Home() {
                   className="mb-4 text-center text-lg font-medium tracking-tight text-black dark:text-white/70"
                   id="workspace-error-heading"
                 >
-                  We couldn’t load or create your workspace. Check the setup
-                  and try again.
+                  We couldn’t load or create your workspace. Check the setup and
+                  try again.
                 </p>
                 {workspaceError && (
                   <p
@@ -1173,7 +1317,6 @@ export default function Home() {
                 )}
               </div>
 
-
               <div className="flex mt-1 min-h-0 flex-wrap content-start gap-2 overflow-y-auto p-1">
                 {matchingCommands.length > 0 ? (
                   matchingCommands.map((command) => (
@@ -1183,7 +1326,6 @@ export default function Home() {
                       onClick={command.run}
                       type="button"
                     >
-
                       <span className="truncate">{command.label}</span>
 
                       {command.shortcut && (
@@ -1268,10 +1410,8 @@ export default function Home() {
                         onClick={() => {
                           if (tab.destination === "settings") {
                             selectSettingsSection(tab.section);
-                            setIsSettingsOpen(true);
                           } else {
                             if (tab.destination === "mode") {
-                              setIsSettingsOpen(false);
                               selectMode(tab.mode);
                             } else {
                               openSubagentsTab();
@@ -1307,8 +1447,7 @@ export default function Home() {
                             className="flex w-full items-center gap-1 rounded-md px-2 py-1 text-left text-sm hover:bg-black/[0.07] dark:hover:bg-white/10"
                             key={chat.id}
                             onClick={() => {
-                              setActiveChatId(chat.id);
-                              markChatOpened(chat.id);
+                              selectChat(chat.id);
                               closeSearch();
                             }}
                             type="button"
