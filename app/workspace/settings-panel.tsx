@@ -36,6 +36,7 @@ import SegmentedToggle from "./SegmentedToggle";
 import SignOutButton from "./sign-out-button";
 import { GrApple, GrGoogle } from "react-icons/gr";
 import { DiChrome } from "react-icons/di";
+import { reportClientError } from "@/lib/monitoring/client";
 
 type SettingsPanelProps = {
   activeSection: string;
@@ -269,6 +270,7 @@ export default function SettingsPanel({
         }),
       );
     } catch (error) {
+      reportClientError("Unable to upload the avatar.", error);
       const message =
         error instanceof Error ? error.message : "Unable to upload the avatar.";
       const normalizedMessage = message.toLowerCase();
@@ -306,7 +308,7 @@ export default function SettingsPanel({
       ]);
       setPasskeyNotice("Passkey added successfully.");
     } catch (error) {
-      console.error("Unable to add a passkey.", error);
+      reportClientError("Unable to add a passkey.", error);
       setPasskeyError(
         error instanceof Error ? error.message : "Unable to add a passkey.",
       );
@@ -336,7 +338,7 @@ export default function SettingsPanel({
       );
       setPasskeyNotice("Passkey removed.");
     } catch (error) {
-      console.error("Unable to remove a passkey.", error);
+      reportClientError("Unable to remove a passkey.", error);
       setPasskeyError(
         error instanceof Error ? error.message : "Unable to remove a passkey.",
       );
@@ -394,7 +396,7 @@ export default function SettingsPanel({
         },
       ]);
     } catch (error) {
-      console.error("Unable to set up an authenticator app.", error);
+      reportClientError("Unable to set up an authenticator app.", error);
       setTotpError(
         error instanceof Error
           ? error.message
@@ -440,6 +442,7 @@ export default function SettingsPanel({
       await navigator.clipboard.writeText(totpEnrollment.secret);
       setIsTotpSecretCopied(true);
     } catch (error) {
+      reportClientError("Unable to cancel authenticator setup.", error);
       setTotpError(
         error instanceof Error
           ? error.message
@@ -525,13 +528,13 @@ export default function SettingsPanel({
       try {
         await refreshTotpFactors();
       } catch (error) {
-        console.error("Unable to refresh authenticator factors.", error);
+        reportClientError("Unable to refresh authenticator factors.", error);
         setTotpError(
           "The code was verified, but the authenticator list could not be refreshed. Reopen this section to check its status.",
         );
       }
     } catch (error) {
-      console.error("Unable to verify the authenticator code.", error);
+      reportClientError("Unable to verify the authenticator code.", error);
       setTotpError(
         error instanceof Error
           ? error.message
@@ -567,7 +570,7 @@ export default function SettingsPanel({
       }
       setTotpNotice("Authenticator removed.");
     } catch (error) {
-      console.error("Unable to remove the authenticator.", error);
+      reportClientError("Unable to remove the authenticator.", error);
       setTotpError(
         error instanceof Error
           ? error.message
@@ -665,8 +668,9 @@ export default function SettingsPanel({
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseAnonKey) {
-      console.error(
+      reportClientError(
         "Supabase is not configured. Check the public Supabase environment variables.",
+        new Error("Missing Supabase environment variables."),
       );
       return;
     }
@@ -677,7 +681,7 @@ export default function SettingsPanel({
       .getUser()
       .then(({ data, error }) => {
         if (error) {
-          console.error("Unable to load account settings.", error);
+          reportClientError("Unable to load account settings.", error);
           return;
         }
 
@@ -715,7 +719,7 @@ export default function SettingsPanel({
         );
       })
       .catch((error: unknown) => {
-        console.error("Unable to load account settings.", error);
+        reportClientError("Unable to load account settings.", error);
       });
   }, []);
 
@@ -735,7 +739,7 @@ export default function SettingsPanel({
           setPasskeyError("");
         }
       } catch (error) {
-        console.error("Unable to load passkeys.", error);
+        reportClientError("Unable to load passkeys.", error);
         if (isActive) {
           setPasskeyError(
             error instanceof Error ? error.message : "Unable to load passkeys.",
@@ -777,7 +781,7 @@ export default function SettingsPanel({
           setTotpError("");
         }
       } catch (error) {
-        console.error("Unable to load authenticator factors.", error);
+        reportClientError("Unable to load authenticator factors.", error);
         if (isActive) {
           setTotpError(
             error instanceof Error

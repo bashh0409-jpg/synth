@@ -39,6 +39,17 @@ this in that project's SQL Editor to refresh PostgREST's schema cache:
 NOTIFY pgrst, 'reload schema';
 ```
 
+## Better Stack error reporting
+
+Create a Better Stack Logs source using its HTTP ingestion option, then set
+`BETTER_STACK_INGESTING_URL` and `BETTER_STACK_SOURCE_TOKEN` as server-side
+environment variables in the deployment platform (and in `.env.local` for
+local testing). Do not prefix either variable with `NEXT_PUBLIC_`.
+
+The app sends caught browser-side Supabase/auth errors and uncaught Next.js
+server request errors to that source. Reports include error details and the
+route, but omit request bodies, cookies, and user identifiers.
+
 ## Electron desktop build
 
 The website can still be run and deployed with `npm run dev`, `npm run build`,

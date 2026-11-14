@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { useRouter } from "next/navigation";
+import { reportClientError } from "@/lib/monitoring/client";
 
 export default function Home() {
   const router = useRouter();
@@ -37,7 +38,7 @@ export default function Home() {
     }
 
     void redirectSignedInUser().catch((error: unknown) => {
-      console.error("Unable to restore the saved sign-in session.", error);
+      reportClientError("Unable to restore the saved sign-in session.", error);
       if (!isActive) return;
 
       setSessionError(
@@ -56,11 +57,12 @@ export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4">
       {isCheckingSession ? (
-        <p role="status">Checking your saved session...</p>
+     
+        <svg className="animate-spin" role="status" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" height="24px" width="24px" fill="#999"><path d="M8.13,21.21Q6.3,20.43 4.94,19.06Q3.58,17.7 2.79,15.88T2,11.99T2.79,8.11T4.94,4.94T8.13,2.79T12,2q0.43,0 0.71,0.29T13,3q0,0.42-0.29,0.71T12,4Q8.68,4 6.34,6.34T4,12t2.34,5.66T12,20t5.66-2.34T20,12q0-0.43 0.29-0.71T21,11q0.43,0 0.71,0.29T22,12q0,2.05-0.79,3.88t-2.15,3.19t-3.17,2.15T12.01,22T8.13,21.21Z"/></svg>
       ) : (
         <>
           {sessionError && (
-            <p className="mb-3 text-center text-sm text-red-600" role="alert">
+            <p className="mb-3 text-center font-medium text-sm text-red-600" role="alert">
               {sessionError}
             </p>
           )}

@@ -5,6 +5,7 @@ import { ChevronDown, RotateCwSquare, Settings } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
 import ProfileAvatar from "./profile-avatar";
 import SignOutButton from "./sign-out-button";
+import { reportClientError } from "@/lib/monitoring/client";
 
 type AccountFlyoutProps = {
   onOpenSettings: () => void;
@@ -49,8 +50,9 @@ export default function AccountFlyout({ onOpenSettings }: AccountFlyoutProps) {
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseAnonKey) {
-      console.error(
+      reportClientError(
         "Supabase is not configured. Check the public Supabase environment variables.",
+        new Error("Missing Supabase environment variables."),
       );
       return;
     }
@@ -61,7 +63,7 @@ export default function AccountFlyout({ onOpenSettings }: AccountFlyoutProps) {
       .getUser()
       .then(({ data, error }) => {
         if (error) {
-          console.error("Unable to load the signed-in user's email.", error);
+          reportClientError("Unable to load the signed-in user's email.", error);
           return;
         }
 
@@ -77,7 +79,7 @@ export default function AccountFlyout({ onOpenSettings }: AccountFlyoutProps) {
         );
       })
       .catch((error: unknown) => {
-        console.error("Unable to load the signed-in user's email.", error);
+        reportClientError("Unable to load the signed-in user's email.", error);
       });
   }, []);
 

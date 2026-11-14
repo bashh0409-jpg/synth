@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import { SquareArrowRightExit } from "lucide-react";
 import type { ReactNode } from "react";
+import { reportClientError } from "@/lib/monitoring/client";
 
 type SignOutButtonProps = {
   ariaLabel?: string;
@@ -33,7 +34,9 @@ export default function SignOutButton({
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseAnonKey) {
-      setErrorMessage("Supabase is not configured.");
+      const error = new Error("Supabase is not configured.");
+      reportClientError("Unable to sign out.", error);
+      setErrorMessage(error.message);
       setIsSigningOut(false);
       return;
     }
@@ -43,6 +46,7 @@ export default function SignOutButton({
       const { error } = await supabase.auth.signOut();
 
       if (error) {
+        reportClientError("Unable to sign out.", error);
         setErrorMessage(error.message);
         setIsSigningOut(false);
         return;
@@ -51,6 +55,7 @@ export default function SignOutButton({
       router.replace("/");
       router.refresh();
     } catch (error) {
+      reportClientError("Unable to sign out.", error);
       setErrorMessage(
         error instanceof Error ? error.message : "Unable to sign out.",
       );

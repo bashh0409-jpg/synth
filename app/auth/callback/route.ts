@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
+import { sendErrorToBetterStack } from "@/lib/monitoring/better-stack";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
@@ -34,6 +35,18 @@ export async function GET(request: NextRequest) {
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
+    try {
+      await sendErrorToBetterStack({
+        context: "Supabase OAuth code exchange",
+        errorName: "SupabaseAuthError",
+        message: error.message,
+        pathname: "/auth/callback",
+        runtime: "nodejs",
+      });
+    } catch (reportingError) {
+      console.error("Unable to report the OAuth callback failure.", reportingError);
+    }
+
     return NextResponse.redirect(new URL("/auth/error", origin));
   }
 
@@ -47,7 +60,20 @@ export async function GET(request: NextRequest) {
     });
 
     if (providerError) {
-      console.error("Unable to save the latest sign-in provider.", providerError);
+      try {
+        await sendErrorToBetterStack({
+          context: "Supabase sign-in provider update",
+          errorName: "SupabaseAuthError",
+          message: providerError.message,
+          pathname: "/auth/callback",
+          runtime: "nodejs",
+        });
+      } catch (reportingError) {
+        console.error(
+          "Unable to report the sign-in provider update failure.",
+          reportingError,
+        );
+      }
     }
   }
 

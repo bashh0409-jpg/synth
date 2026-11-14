@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { FaGithub, FaGoogle } from "react-icons/fa";
 import { Mail } from "lucide-react";
+import { reportClientError } from "@/lib/monitoring/client";
 
 export default function GoogleSignInButton() {
   const [loadingProvider, setLoadingProvider] = useState<
@@ -41,6 +42,7 @@ export default function GoogleSignInButton() {
         throw error;
       }
     } catch (error) {
+      reportClientError(`Unable to start ${provider} sign-in.`, error);
       setErrorMessage(
         error instanceof Error
           ? error.message
@@ -80,6 +82,7 @@ export default function GoogleSignInButton() {
 
       setEmailSent(true);
     } catch (error) {
+      reportClientError("Unable to send the sign-in email.", error);
       setErrorMessage(
         error instanceof Error ? error.message : "Unable to send the sign-in email.",
       );

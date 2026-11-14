@@ -8,6 +8,7 @@ import {
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
+import { reportClientError } from "@/lib/monitoring/client";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import {
@@ -468,7 +469,7 @@ export default function Home() {
     }
 
     void loadWorkspace().catch((error: unknown) => {
-      console.error("Unable to load the user's workspace.", error);
+      reportClientError("Unable to load the user's workspace.", error);
       if (!isActive) return;
       setWorkspaceError(getWorkspaceErrorMessage(error));
       setWorkspaceStatus("error");

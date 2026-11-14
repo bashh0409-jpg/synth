@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
+import { reportClientError } from "@/lib/monitoring/client";
 
 export default function ProfileAvatar() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -19,7 +20,10 @@ export default function ProfileAvatar() {
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseAnonKey) {
-      console.error("Supabase is not configured. Check the public Supabase environment variables.");
+      reportClientError(
+        "Supabase is not configured. Check the public Supabase environment variables.",
+        new Error("Missing Supabase environment variables."),
+      );
       return () =>
         window.removeEventListener("profile-avatar-updated", handleAvatarUpdate);
     }
@@ -30,7 +34,7 @@ export default function ProfileAvatar() {
       .getUser()
       .then(({ data, error }) => {
         if (error) {
-          console.error("Unable to load the signed-in user's profile.", error);
+          reportClientError("Unable to load the signed-in user's profile.", error);
           return;
         }
 
@@ -45,7 +49,7 @@ export default function ProfileAvatar() {
 
       })
       .catch((error: unknown) => {
-        console.error("Unable to load the signed-in user's profile.", error);
+        reportClientError("Unable to load the signed-in user's profile.", error);
       });
 
     return () =>
